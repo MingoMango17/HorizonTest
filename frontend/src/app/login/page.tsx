@@ -35,7 +35,7 @@ const Login = () => {
                 className={inputStyle}
               />
             </div>
-            <button className="bg-[#6C63FF] w-full px-4 py-3 rounded-lg">Sign in</button>
+            <button type="button" className="bg-[#6C63FF] cursor-pointer hover:opacity-90 w-full px-4 py-3 rounded-lg">Sign in</button>
           </div>
         </form>
       </div>
