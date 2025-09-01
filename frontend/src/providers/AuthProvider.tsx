@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import React, { createContext, ReactNode, useState } from "react";
 
 interface LoginData {
@@ -33,14 +34,17 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     name: "",
   });
 
-  const login = ({ username, password }: LoginData) => {
-    console.log("login logic here");
+  const router = useRouter();
+
+  const login = async ({ username, password }: LoginData) => {
+    console.log("login logic here", username, password);
     setIsAuthenticated(true);
+    router.push("/");
   };
 
-  const logout = () => {
+  const logout = async () => {
     console.log("logout here");
-    setIsAuthenticated(false)
+    setIsAuthenticated(false);
   };
 
   const contextValue: AuthContextType = {

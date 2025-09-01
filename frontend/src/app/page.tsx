@@ -1,9 +1,16 @@
-"use client"
+"use client";
+import MainPage from "@/components/MainPage";
 import { useAuth } from "@/providers/AuthProvider";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
-  const auth = useAuth();
-  
-  // if (auth.isAuthenticated)
-  return <>hi</>;
+	const { isAuthenticated } = useAuth();
+	const router = useRouter();
+	useEffect(() => {
+		if (!isAuthenticated) {
+			router.push("/login");
+		}
+	}, [isAuthenticated, router]);
+	return <MainPage />;
 }
