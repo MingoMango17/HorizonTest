@@ -41,6 +41,10 @@ class LoginView(APIView):
                     },
                 }
                 return Response(response_data, status=status.HTTP_200_OK)
+            return Response(
+                {"error": "Invalid Credentials"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         except:
             return Response(
