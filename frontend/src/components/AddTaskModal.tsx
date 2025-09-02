@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface Task {
+	id?: number;
 	title: string;
 	description: string;
 	completed: boolean;
@@ -9,19 +10,34 @@ interface Task {
 interface Props {
 	isOpen: boolean;
 	onClose: () => void;
-	onAddTask: (task: Task) => void;
+	onAddTask: (task: { title: string; description: string }) => void;
+	editingTask?: Task | null;
 }
 
-const AddTaskModal: React.FC<Props> = ({ isOpen, onClose, onAddTask }) => {
+const AddTaskModal: React.FC<Props> = ({
+	isOpen,
+	onClose,
+	onAddTask,
+	editingTask,
+}) => {
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
+
+	useEffect(() => {
+		if (editingTask) {
+			setTitle(editingTask.title);
+			setDescription(editingTask.description);
+		} else {
+			setTitle("");
+			setDescription("");
+		}
+	}, [editingTask]);
 
 	const handleSubmit = () => {
 		if (title.trim()) {
 			onAddTask({
 				title: title.trim(),
 				description: description.trim(),
-				completed: false,
 			});
 			setTitle("");
 			setDescription("");
@@ -41,19 +57,17 @@ const AddTaskModal: React.FC<Props> = ({ isOpen, onClose, onAddTask }) => {
 		<div className="fixed inset-0 bg-white/5 rounded-lg flex items-center justify-center z-50 p-4">
 			<div className="bg-[#252525] border border-white rounded-lg p-6 w-full max-w-md">
 				<h2 className="text-white text-lg font-medium mb-6 text-center">
-					NEW NOTE
+					{editingTask ? "EDIT NOTE" : "NEW NOTE"}
 				</h2>
-
 				<div className="space-y-4">
 					<input
 						type="text"
 						value={title}
 						onChange={(e) => setTitle(e.target.value)}
 						placeholder="Enter task title..."
-						className="w-full px-3 py-2  border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-white"
+						className="w-full px-3 py-2 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-white"
 						autoFocus
 					/>
-
 					<textarea
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
@@ -62,7 +76,6 @@ const AddTaskModal: React.FC<Props> = ({ isOpen, onClose, onAddTask }) => {
 						rows={3}
 					/>
 				</div>
-
 				<div className="flex justify-between space-x-3 mt-6">
 					<button
 						onClick={handleCancel}
@@ -74,7 +87,7 @@ const AddTaskModal: React.FC<Props> = ({ isOpen, onClose, onAddTask }) => {
 						onClick={handleSubmit}
 						className="px-6 py-2 bg-[#6C63FF] hover:bg-[#4941CC] text-white rounded transition-colors duration-200"
 					>
-						APPLY
+						{editingTask ? "UPDATE" : "APPLY"}
 					</button>
 				</div>
 			</div>

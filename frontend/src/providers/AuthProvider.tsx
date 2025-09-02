@@ -1,5 +1,4 @@
 "use client";
-
 import djangoAPI from "@/utils/axios";
 import { useRouter } from "next/navigation";
 import React, { createContext, ReactNode, useEffect, useState } from "react";
@@ -19,8 +18,10 @@ interface AuthContextType {
 	isAuthenticated: boolean;
 	userData: UserData;
 	isLoading: boolean;
-	login: (data: LoginData) => void;
+	loginError: string | null;
+	login: (data: LoginData) => Promise<void>;
 	logout: () => void;
+	clearLoginError: () => void;
 }
 
 interface AuthProviderProps {
@@ -32,23 +33,21 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
+	const [loginError, setLoginError] = useState<string | null>(null);
 	const [userData, setUserData] = useState<UserData>({
 		username: "",
 		name: "",
 	});
-
 	const router = useRouter();
 
 	useEffect(() => {
 		const checkAuthStatus = async () => {
-			setIsLoading(true);
 			const accessToken = localStorage.getItem("accessToken");
 			const refreshToken = localStorage.getItem("refreshToken");
 
 			if (accessToken || refreshToken) {
 				try {
-					// Try to fetch user data with existing token
-					const response = await djangoAPI.get("auth/token/"); // Adjust endpoint as needed
+					const response = await djangoAPI.get("auth/token/");
 					const user = response.data.user;
 					setUserData({
 						username: user.username,
@@ -57,7 +56,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 					});
 					setIsAuthenticated(true);
 				} catch (error) {
-					// If token is invalid, try to refresh
 					if (refreshToken) {
 						try {
 							const refreshResponse = await djangoAPI.post(
@@ -66,14 +64,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 									refresh: refreshToken,
 								}
 							);
-
-							// Update access token
 							localStorage.setItem(
 								"accessToken",
 								refreshResponse.data.access
 							);
-
-							// Try fetching user data again
 							const userResponse = await djangoAPI.get(
 								"auth/user/"
 							);
@@ -94,46 +88,80 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 					}
 				}
 			}
-
 			setIsLoading(false);
 		};
 
 		checkAuthStatus();
-	}, []); // Empty dependency array means this runs once on mount
+	}, []);
+
 	const login = async ({ username, password }: LoginData) => {
 		try {
 			const request = await djangoAPI.post("auth/login/", {
 				username: username,
 				password: password,
 			});
+
+			setLoginError(null);
 			setUserData({
 				username: request.data.username,
-				name: request.data.first_name + request.data.last_name,
+				name: request.data.first_name + " " + request.data.last_name,
 			});
 			setIsAuthenticated(true);
-
 			localStorage.setItem("accessToken", request.data.tokens.access);
 			localStorage.setItem("refreshToken", request.data.tokens.refresh);
-		} catch (error) {
-			setIsAuthenticated(false);
-		} finally {
 			router.push("/");
+		} catch (error: any) {
+			if (error.response?.status === 401) {
+				setLoginError("Invalid username or password");
+			} else if (error.response?.status === 400) {
+				const errorData = error.response.data;
+				if (errorData.non_field_errors) {
+					setLoginError(errorData.non_field_errors[0]);
+				} else if (errorData.username) {
+					setLoginError(`Username: ${errorData.username[0]}`);
+				} else if (errorData.password) {
+					setLoginError(`Password: ${errorData.password[0]}`);
+				} else {
+					setLoginError("Please check your credentials");
+				}
+			} else if (error.response?.status === 429) {
+				setLoginError(
+					"Too many login attempts. Please try again later"
+				);
+			} else if (error.code === "NETWORK_ERROR" || !error.response) {
+				setLoginError("Network error. Please check your connection");
+			} else {
+				setLoginError("An unexpected error occurred. Please try again");
+			}
+
+			console.error("Login error:", error);
 		}
 	};
 
 	const logout = async () => {
-		console.log("logout here");
 		localStorage.removeItem("accessToken");
 		localStorage.removeItem("refreshToken");
 		setIsAuthenticated(false);
+		setLoginError(null);
+		setUserData({
+			username: "",
+			name: "",
+		});
+		router.push("/login");
+	};
+
+	const clearLoginError = () => {
+		setLoginError(null);
 	};
 
 	const contextValue: AuthContextType = {
 		isAuthenticated,
 		userData,
 		isLoading,
+		loginError,
 		login,
 		logout,
+		clearLoginError,
 	};
 
 	return (
@@ -145,7 +173,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 const useAuth = (): AuthContextType => {
 	const context = React.useContext(AuthContext);
-
 	if (!context) {
 		throw new Error("useAuth must be used within AuthProvider");
 	}
@@ -153,5 +180,4 @@ const useAuth = (): AuthContextType => {
 };
 
 export { AuthContext, AuthProvider, useAuth };
-
 export default AuthProvider;

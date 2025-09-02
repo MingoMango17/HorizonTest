@@ -5,44 +5,6 @@ import AddTaskModal from "./AddTaskModal";
 import { useAuth } from "@/providers/AuthProvider";
 import djangoAPI from "@/utils/axios";
 
-const taskTestData = [
-	{
-		id: 1,
-		title: "Fix navbar responsive design",
-		description:
-			"Update CSS media queries to handle mobile breakpoints correctly",
-		completed: false,
-	},
-	{
-		id: 2,
-		title: "Write unit tests for user authentication",
-		description:
-			"Create comprehensive test coverage for login, logout, and token validation",
-		completed: true,
-	},
-	{
-		id: 3,
-		title: "Update project documentation",
-		description:
-			"Revise README file with latest installation instructions and API endpoints",
-		completed: false,
-	},
-	{
-		id: 4,
-		title: "Optimize database queries",
-		description:
-			"Review and improve slow-performing queries in the analytics dashboard",
-		completed: true,
-	},
-	{
-		id: 5,
-		title: "Implement dark mode toggle",
-		description:
-			"Add user preference for dark/light theme with persistent storage",
-		completed: false,
-	},
-];
-
 interface Task {
 	id: number;
 	title: string;
@@ -53,44 +15,114 @@ interface Task {
 const MainPage = () => {
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [filter, setFilter] = useState<string>("All");
-
 	const [search, setSearch] = useState<string>("");
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [editingTask, setEditingTask] = useState<Task | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
 	const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
 		setSearch(event.target.value);
 	};
 
-	const [isModalOpen, setIsModalOpen] = useState(false);
 	const handleModalClose = () => {
 		setIsModalOpen(false);
+		setEditingTask(null);
 	};
 
-	const handleCompleteTask = (taskId: number) => {
-		setTasks((prev) =>
-			prev.map((task) =>
-				task.id === taskId
-					? { ...task, completed: !task.completed }
-					: task
-			)
-		);
+	const handleCompleteTask = async (taskId: number) => {
+		try {
+			const taskToUpdate = tasks.find((task) => task.id === taskId);
+			if (!taskToUpdate) return;
+
+			const response = await djangoAPI.put(`api/v1/task/${taskId}/`, {
+				...taskToUpdate,
+				completed: !taskToUpdate.completed,
+			});
+
+			setTasks((prev) =>
+				prev.map((task) => (task.id === taskId ? response.data : task))
+			);
+		} catch (error) {
+			console.error("Error updating task completion:", error);
+		}
+	};
+
+	const handleEditTask = (task: Task) => {
+		setEditingTask(task);
+		setIsModalOpen(true);
+	};
+
+	const handleDeleteTask = async (taskId: number) => {
+		try {
+			await djangoAPI.delete(`api/v1/task/${taskId}/`);
+
+			setTasks((prev) => prev.filter((task) => task.id !== taskId));
+		} catch (error) {
+			console.error("Error deleting task:", error);
+		}
 	};
 
 	useEffect(() => {
 		const getTasks = async () => {
-			const request = await djangoAPI.get("api/v1/task/");
-			const data = request.data;
-			setTasks(data);
+			try {
+				setLoading(true);
+				setError(null);
+				const request = await djangoAPI.get("api/v1/task/");
+				const data = request.data;
+				setTasks(data);
+			} catch (error) {
+				console.error("Error fetching tasks:", error);
+				setError("Failed to load tasks. Please try again.");
+			} finally {
+				setLoading(false);
+			}
 		};
 		getTasks();
 	}, []);
 
 	const handleAddTask = () => {
 		console.log("Add new task clicked");
+		setEditingTask(null);
 		setIsModalOpen(true);
 	};
 
-	const handleAddNewTask = () => {
-		//
+	const handleAddNewTask = async (taskData: {
+		title: string;
+		description: string;
+	}) => {
+		try {
+			if (editingTask) {
+				// Update existing task
+				const response = await djangoAPI.put(
+					`api/v1/task/${editingTask.id}/`,
+					{
+						title: taskData.title,
+						description: taskData.description,
+						completed: editingTask.completed,
+					}
+				);
+
+				setTasks((prev) =>
+					prev.map((task) =>
+						task.id === editingTask.id ? response.data : task
+					)
+				);
+			} else {
+				const response = await djangoAPI.post("api/v1/task/", {
+					title: taskData.title,
+					description: taskData.description,
+					completed: false,
+				});
+
+				setTasks((prev) => [...prev, response.data]);
+			}
+			handleModalClose();
+		} catch (error) {
+			console.error("Error saving task:", error);
+		}
 	};
+
 	const tasksToShow = useMemo(() => {
 		let filteredTasks = tasks;
 
@@ -146,19 +178,35 @@ const MainPage = () => {
 			</div>
 
 			<div className="flex flex-col space-y-6 mt-10 w-full max-w-xl mx-auto items-center justify-center">
-				{tasksToShow.map((task, idx) => (
-					<div key={task.id} className="w-full space-y-6">
-						<TaskComponent
-							task={task}
-							handleCompleteTask={() =>
-								handleCompleteTask(task.id)
-							}
-						/>
-						{idx !== tasksToShow.length - 1 && (
-							<hr className="border-[#6C63FF]" />
-						)}
+				{loading ? (
+					<div className="text-white text-center">
+						Loading tasks...
 					</div>
-				))}
+				) : error ? (
+					<div className="text-red-500 text-center">{error}</div>
+				) : tasksToShow.length === 0 ? (
+					<div className="text-gray-400 text-center">
+						No tasks found
+					</div>
+				) : (
+					tasksToShow.map((task, idx) => (
+						<div key={task.id} className="w-full space-y-6">
+							<TaskComponent
+								task={task}
+								handleCompleteTask={() =>
+									handleCompleteTask(task.id)
+								}
+								handleEditTask={() => handleEditTask(task)}
+								handleDeleteTask={() =>
+									handleDeleteTask(task.id)
+								}
+							/>
+							{idx !== tasksToShow.length - 1 && (
+								<hr className="border-[#6C63FF]" />
+							)}
+						</div>
+					))
+				)}
 			</div>
 
 			<div className="fixed top-8 w-full max-w-3xl mx-auto px-4">
@@ -187,6 +235,7 @@ const MainPage = () => {
 				isOpen={isModalOpen}
 				onClose={handleModalClose}
 				onAddTask={handleAddNewTask}
+				editingTask={editingTask}
 			/>
 		</div>
 	);

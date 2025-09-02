@@ -2,11 +2,14 @@ import React, { useState } from "react";
 
 interface TaskProps {
 	task: {
+		id: number;
 		title: string;
 		description: string;
 		completed: boolean;
 	};
 	handleCompleteTask: () => void;
+	handleEditTask: () => void;
+	handleDeleteTask: () => void;
 }
 
 const editSVG = (
@@ -49,15 +52,59 @@ const trashSVG = (
 	</svg>
 );
 
-const TaskComponent: React.FC<TaskProps> = ({ task, handleCompleteTask }) => {
+const TaskComponent: React.FC<TaskProps> = ({ 
+	task, 
+	handleCompleteTask, 
+	handleEditTask, 
+	handleDeleteTask 
+}) => {
 	const { title, description, completed } = task;
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
 	const handleChange = () => {
 		handleCompleteTask();
 	};
 
+	const handleDeleteClick = () => {
+		setShowDeleteConfirm(true);
+	};
+
+	const handleConfirmDelete = () => {
+		handleDeleteTask();
+		setShowDeleteConfirm(false);
+	};
+
+	const handleCancelDelete = () => {
+		setShowDeleteConfirm(false);
+	};
+
+	if (showDeleteConfirm) {
+		return (
+			<div className="flex w-full justify-between items-center bg-red-900/20 border border-red-500 rounded-lg p-4">
+				<div className="text-white">
+					Are you sure you want to delete "{title}"?
+				</div>
+				<div className="flex space-x-2">
+					<button
+						onClick={handleConfirmDelete}
+						className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
+					>
+						Delete
+					</button>
+					<button
+						onClick={handleCancelDelete}
+						className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
+					>
+						Cancel
+					</button>
+				</div>
+			</div>
+		);
+	}
+
 	return (
-		<div className="flex w-full justify-between">
-			<div className="flex space-x-4">
+		<div className="flex w-full justify-between items-start">
+			<div className="flex space-x-4 flex-1">
 				<input
 					type="checkbox"
 					checked={completed}
@@ -66,7 +113,7 @@ const TaskComponent: React.FC<TaskProps> = ({ task, handleCompleteTask }) => {
 				/>
 				<div
 					onClick={handleChange}
-					className={`w-6 h-6 border-2 rounded cursor-pointer flex items-center justify-center transition-all duration-200 ${
+					className={`w-6 h-6 border-2 rounded cursor-pointer flex items-center justify-center transition-all duration-200 mt-1 flex-shrink-0 ${
 						completed
 							? "bg-[#6C63FF] border-none"
 							: "bg-transparent border-[#6C63FF]"
@@ -88,11 +135,40 @@ const TaskComponent: React.FC<TaskProps> = ({ task, handleCompleteTask }) => {
 						</svg>
 					)}
 				</div>
-				<div className={completed ? `line-through` : ""}>{title}</div>
+				<div className="flex-1">
+					<div 
+						className={`text-white font-medium text-lg mb-1 ${
+							completed ? "line-through text-gray-400" : ""
+						}`}
+					>
+						{title}
+					</div>
+					{description && (
+						<div 
+							className={`text-gray-300 text-sm ${
+								completed ? "line-through text-gray-500" : ""
+							}`}
+						>
+							{description}
+						</div>
+					)}
+				</div>
 			</div>
-			<div className="flex">
-				<button className="cursor-pointer">{editSVG}</button>
-				<button className="cursor-pointer">{trashSVG}</button>
+			<div className="flex space-x-2 ml-4 flex-shrink-0">
+				<button 
+					className="cursor-pointer hover:text-blue-400 transition-colors duration-200 p-1" 
+					onClick={handleEditTask}
+					title="Edit task"
+				>
+					{editSVG}
+				</button>
+				<button 
+					className="cursor-pointer hover:text-red-400 transition-colors duration-200 p-1" 
+					onClick={handleDeleteClick}
+					title="Delete task"
+				>
+					{trashSVG}
+				</button>
 			</div>
 		</div>
 	);

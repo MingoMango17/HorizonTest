@@ -9,7 +9,6 @@ interface DropdownProps {
 
 const Dropdown: React.FC<DropdownProps> = React.memo(
 	({ options, selected, handleSelect, dropdownStyle }) => {
-		// return <div>Dropdown</div>;
 		const [isOpen, setIsOpen] = useState<boolean>(false);
 		const dropdownRef = useRef<HTMLDivElement>(null);
 

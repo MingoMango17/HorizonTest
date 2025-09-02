@@ -33,7 +33,6 @@ djangoAPI.interceptors.response.use(
 			try {
 				const refreshToken = localStorage.getItem("refreshToken");
 				if (!refreshToken) {
-					// No refresh token, redirect to login
 					localStorage.removeItem("accessToken");
 					localStorage.removeItem("refreshToken");
 					window.location.href = "/login";
@@ -50,11 +49,9 @@ djangoAPI.interceptors.response.use(
 				const newAccessToken = response.data.access;
 				localStorage.setItem("accessToken", newAccessToken);
 
-				// Retry the original request with new token
 				originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 				return djangoAPI(originalRequest);
 			} catch (refreshError) {
-				// Refresh failed, logout user
 				localStorage.removeItem("accessToken");
 				localStorage.removeItem("refreshToken");
 				window.location.href = "/login";
