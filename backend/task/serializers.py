@@ -1,0 +1,14 @@
+from rest_framework.serializers import ModelSerializer
+from .models import *
+
+class TaskModelSerializer(ModelSerializer):
+    
+    class Meta:
+        model = Task
+        fields = [
+            'id',
+            'title',
+            'description',
+            'owner'
+        ]
+        read_only_fields = ['id']
