@@ -3,6 +3,7 @@ import Dropdown from "./Dropdown";
 import TaskComponent from "./TaskComponent";
 import AddTaskModal from "./AddTaskModal";
 import { useAuth } from "@/providers/AuthProvider";
+import djangoAPI from "@/utils/axios";
 
 const taskTestData = [
 	{
@@ -50,7 +51,7 @@ interface Task {
 }
 
 const MainPage = () => {
-	const [tasks, setTasks] = useState<Task[]>(taskTestData);
+	const [tasks, setTasks] = useState<Task[]>([]);
 	const [filter, setFilter] = useState<string>("All");
 
 	const [search, setSearch] = useState<string>("");
@@ -72,6 +73,15 @@ const MainPage = () => {
 			)
 		);
 	};
+
+	useEffect(() => {
+		const getTasks = async () => {
+			const request = await djangoAPI.get("api/v1/task/");
+			const data = request.data;
+			setTasks(data);
+		};
+		getTasks();
+	}, []);
 
 	const handleAddTask = () => {
 		console.log("Add new task clicked");

@@ -1,6 +1,7 @@
 "use client";
 import { useAuth } from "@/providers/AuthProvider";
-import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 const inputStyle =
 	"w-full border border-gray-600 px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:border-transparent";
@@ -11,7 +12,13 @@ interface LoginData {
 }
 
 const LoginComponent = () => {
-	const { login } = useAuth();
+	const { login, isAuthenticated } = useAuth();
+	const router = useRouter();
+
+	useEffect(() => {
+		if (isAuthenticated)
+			router.push("/");
+	}, [isAuthenticated, router])
 
 	const [formData, setFormData] = useState<LoginData>({
 		username: "",
@@ -26,7 +33,6 @@ const LoginComponent = () => {
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
-		console.log("sign in", formData);
 		login(formData);
 	};
 
