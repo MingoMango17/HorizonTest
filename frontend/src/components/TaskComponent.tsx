@@ -6,6 +6,7 @@ interface TaskProps {
 		description: string;
 		completed: boolean;
 	};
+	handleCompleteTask: () => void;
 }
 
 const editSVG = (
@@ -48,11 +49,10 @@ const trashSVG = (
 	</svg>
 );
 
-const TaskComponent: React.FC<TaskProps> = ({ task }) => {
+const TaskComponent: React.FC<TaskProps> = ({ task, handleCompleteTask }) => {
 	const { title, description, completed } = task;
-	const [isCompleted, setIsCompleted] = useState<boolean>(completed);
 	const handleChange = () => {
-		setIsCompleted((prev) => !prev);
+		handleCompleteTask();
 	};
 
 	return (
@@ -60,19 +60,19 @@ const TaskComponent: React.FC<TaskProps> = ({ task }) => {
 			<div className="flex space-x-4">
 				<input
 					type="checkbox"
-					checked={isCompleted}
+					checked={completed}
 					onChange={handleChange}
-					className="sr-only" // Hide the default checkbox
+					className="sr-only"
 				/>
 				<div
 					onClick={handleChange}
 					className={`w-6 h-6 border-2 rounded cursor-pointer flex items-center justify-center transition-all duration-200 ${
-						isCompleted
+						completed
 							? "bg-[#6C63FF] border-none"
 							: "bg-transparent border-[#6C63FF]"
 					}`}
 				>
-					{isCompleted && (
+					{completed && (
 						<svg
 							className="w-6 h-6 text-white"
 							fill="none"
@@ -88,11 +88,11 @@ const TaskComponent: React.FC<TaskProps> = ({ task }) => {
 						</svg>
 					)}
 				</div>
-				<div className={isCompleted ? `line-through` : ""}>{title}</div>
+				<div className={completed ? `line-through` : ""}>{title}</div>
 			</div>
 			<div className="flex">
-				<button>{editSVG}</button>
-				<button>{trashSVG}</button>
+				<button className="cursor-pointer">{editSVG}</button>
+				<button className="cursor-pointer">{trashSVG}</button>
 			</div>
 		</div>
 	);
